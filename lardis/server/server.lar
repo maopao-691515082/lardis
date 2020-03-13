@@ -1,4 +1,25 @@
+import net, fiber;
+from . import util, db;
+
+final String SVR_ADDR = ":6379";
+
 public void start()
 {
+    var listener = new net.TcpListener(SVR_ADDR);
+    defer listener.close();
 
+    util.log("启动");
+    for (;;)
+    {
+        var c = call_and_catch<Throwable>([-]{
+            var conn = listener.accept();
+            fiber.start_new([-]{
+                new Client(conn).run();
+            });
+        });
+        if (c !== nil)
+        {
+            util.log("accept失败[%s][%s]".(c.throwed().str(), c.traceback()));
+        }
+    }
 }

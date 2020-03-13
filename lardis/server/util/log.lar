@@ -1,0 +1,7 @@
+import time;
+
+public void log(String msg)
+{
+    defer ignore_exc();
+    println("[%s] %s".(time.format_time("2006-01-02 15:04:05.000", time.time()), msg));
+}

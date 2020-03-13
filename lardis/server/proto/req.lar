@@ -1,0 +1,119 @@
+import io/bufio;
+from .. import util;
+
+final long NUM_BUF_MAX_SIZE = 30;   //解析数字的时候最大的字节数限制，对64位整数来说足够了
+
+char recv_char(bufio.Reader reader)
+{
+    char ch;
+    if (!reader.read_char(ref ch))
+    {
+        throw_proto_err("连接异常关闭");
+    }
+    return ch;
+}
+
+long recv_int(bufio.Reader reader)
+{
+    var b = new char[NUM_BUF_MAX_SIZE];
+    long sz = reader.read_until_char(b, '\r');
+    if (sz >= NUM_BUF_MAX_SIZE)
+    {
+        throw_proto_err("数字过长：%r".(new String(b)));
+    }
+    if (sz == 0 || b[sz - 1] != '\r')
+    {
+        throw_proto_err("连接异常关闭");
+    }
+    if (recv_char(reader) != '\n')
+    {
+        throw_proto_err(`‘数字\r’后需要‘\n’`);
+    }
+
+    var s = new String(b[: sz - 1]);
+    long n;
+    var c = call_and_catch<ValueError>([-]{
+        n = s.parse_long(10);
+    });
+    if (c !== nil)
+    {
+        throw_proto_err("非法的数字：%r".(s));
+    }
+
+    return n;
+}
+
+String recv_part(bufio.Reader reader)
+{
+    if (recv_char(reader) != '$')
+    {
+        throw_proto_err("字段头部需要字符‘$’");
+    }
+
+    long part_len = recv_int(reader);
+    if (part_len < 0)
+    {
+        throw_proto_err("字段长度错误[%d]".(part_len));
+    }
+
+    var b = new char[part_len];
+    long sz = reader.read_until_eof(b);
+    if (sz != part_len)
+    {
+        throw_proto_err("连接异常关闭");
+    }
+    if (recv_char(reader) != '\r' || recv_char(reader) != '\n')
+    {
+        throw_proto_err(`每个字段值后需要‘\r\n’`);
+    }
+
+    return new String(b);
+}
+
+public Req recv_req(bufio.Reader reader)
+{
+    char ch;
+    if (!reader.read_char(ref ch))
+    {
+        //对方关闭了连接
+        return nil;
+    }
+    if (ch != '*')
+    {
+        throw_proto_err("协议头部需要字符‘*’");
+    }
+
+    long part_count = recv_int(reader);
+    if (part_count <= 0)
+    {
+        throw_proto_err("协议的字段个数错误[%d]".(part_count));
+    }
+
+    var parts = new String[part_count];
+    for (long i = 0; i < part_count; ++ i)
+    {
+        parts[i] = recv_part(reader);
+    }
+    parts[0] = parts[0].to_upper();
+
+    //todo 检查是否为合法命令，以及命令的参数数量是否正确
+
+    return new Req{
+        parts: parts,
+    };
+}
+
+public class Req
+{
+    String[] parts; //第一个为cmd，会转为大写
+
+    public String cmd()
+    {
+        return this.arg(0);
+    }
+
+    public String arg(long idx)
+    {
+        return this.parts[idx];
+    }
+}

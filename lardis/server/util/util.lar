@@ -1,0 +1,6 @@
+import debug;
+
+public void assert(bool cond)
+{
+    debug.assert(cond, "bug");
+}

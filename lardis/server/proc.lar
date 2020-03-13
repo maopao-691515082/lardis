@@ -1,0 +1,12 @@
+from . import proto;
+
+interface RspDataSender
+{
+    void send_rsp_data(char[] rsp_data);
+}
+
+void proc_req(proto.Req req, RspDataSender rsp_data_sender)
+{
+    //todo
+    rsp_data_sender.send_rsp_data("+OK\r\n".to_char_array());
+}

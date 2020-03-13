@@ -1,0 +1,9 @@
+public class ProtoError
+{
+    String s usemethod(str);
+}
+
+void throw_proto_err(String s)
+{
+    throw(new ProtoError{s});
+}

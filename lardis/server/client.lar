@@ -1,0 +1,60 @@
+import net, io/bufio, fiber;
+from . import util, proto;
+
+final double SEND_TIME_OUT = 10.0;
+
+class Client
+{
+    net.TcpConn     conn;
+    bufio.Reader    conn_r;
+
+    Client(net.TcpConn conn)
+    {
+        this.conn   = conn;
+        this.conn_r = new bufio.Reader(conn, 0);
+        this.log("开始服务");
+    }
+
+    void log(String s)
+    {
+        util.log("客户端[%s]: %s".(this.conn.remote_addr(), s));
+    }
+
+    void _run()
+    {
+        for (;;)
+        {
+            var req = proto.recv_req(this.conn_r);
+            if (req === nil)
+            {
+                this.log("连接关闭");
+                return;
+            }
+            if (req.cmd().eq("QUIT"))
+            {
+                this.log("退出");
+                return;
+            }
+
+            proc_req(req, []{
+                void send_rsp_data(char[] rsp_data)
+                {
+                    this.conn.write(rsp_data);
+                }
+            });
+        }
+    }
+
+    void run()
+    {
+        defer this.conn.close();    //不出现异常的情况下，每一轮write后都会有flush，异常情况也不需要关心flush了，所以问题不大
+
+        var c = call_and_catch<Throwable>([-]{
+            this._run();
+        });
+        if (c !== nil)
+        {
+            this.log("异常退出：[%s]，traceback[%s]".(c.throwed().str(), c.traceback()));
+        }
+    }
+}
