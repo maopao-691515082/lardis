@@ -1,0 +1,6 @@
+from . import server;
+
+public void main()
+{
+    server.start();
+}
