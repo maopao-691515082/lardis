@@ -1,19 +1,46 @@
-import io/bufio;
+import io/bufio, util;
 from . import proto;
+
+final util.HashMap<String, CmdInfo> CMD_INFO_MAP = new util.HashMap<String, CmdInfo>(new Pair<String, CmdInfo>[]{
+    "COMMAND":  new CmdInfo{
+        arg_count:  0,
+        executor:   new CmdExecutor_COMMAND(),
+    },
+    "SET":      new CmdInfo{
+        arg_count:  2,
+        executor:   new CmdExecutor_SET(),
+    },
+    "GET":      new CmdInfo{
+        arg_count:  1,
+        executor:   new CmdExecutor_GET(),
+    },
+}.iter());
 
 void proc_req(String cmd, char[][] args, bufio.Writer rsp_writer)
 {
-    if (cmd.eq("SET"))
+    String err_msg;
+
+    var cmd_info = CMD_INFO_MAP.get_or_default(cmd, nil);
+    if (cmd_info === nil)
     {
-        do_cmd_set(args, rsp_writer);
-        return;
+        err_msg = "不支持命令‘%s’".(cmd);
+    }
+    else
+    {
+        long arg_count = args.size();
+        if ((cmd_info.arg_count > 0 && arg_count != cast<long>(cmd_info.arg_count)) ||
+            (cmd_info.arg_count <= 0 && arg_count < -cast<long>(cmd_info.arg_count)))
+        {
+            err_msg = "命令‘%s’需要%s%d个参数".(cmd, "" if cmd_info.arg_count > 0 else "至少", cmd_info.arg_count);
+        }
+        else
+        {
+            err_msg = cmd_info.executor.execute(args, rsp_writer);
+        }
     }
 
-    if (cmd.eq("GET"))
+    if (err_msg !== nil)
     {
-        do_cmd_get(args, rsp_writer);
-        return;
+        send_err_rsp(rsp_writer, err_msg);
     }
-
-    send_err_rsp(rsp_writer, "不支持命令‘%s’".(cmd));
 }

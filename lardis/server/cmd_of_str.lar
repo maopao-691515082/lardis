@@ -1,0 +1,17 @@
+import io/bufio;
+
+class CmdExecutor_SET
+{
+    String execute(char[][] args, bufio.Writer rsp_writer)
+    {
+        return "todo";
+    }
+}
+
+class CmdExecutor_GET
+{
+    String execute(char[][] args, bufio.Writer rsp_writer)
+    {
+        return "todo";
+    }
+}

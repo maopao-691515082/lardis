@@ -1,0 +1,20 @@
+class AvlNode<K, V>
+{
+    K k;
+    V v;
+
+    uint h;
+    uint sz;
+    AvlNode<K, V> l, r;
+}
+
+public class Avl<K, V>
+{
+    AvlNode<K, V> root;
+
+    public Avl()
+    {
+        this.root = nil;
+    }
+
+}

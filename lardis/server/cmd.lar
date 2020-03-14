@@ -1,0 +1,12 @@
+import io/bufio;
+
+interface CmdExecutor
+{
+    String execute(char[][] args, bufio.Writer rsp_writer);
+}
+
+class CmdInfo
+{
+    int         arg_count;
+    CmdExecutor executor;
+}
