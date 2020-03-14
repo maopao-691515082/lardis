@@ -14,6 +14,10 @@ final util.HashMap<String, CmdInfo> CMD_INFO_MAP = new util.HashMap<String, CmdI
         arg_count:  1,
         executor:   new CmdExecutor_GET(),
     },
+    "DEL":      new CmdInfo{
+        arg_count:  1,
+        executor:   new CmdExecutor_DEL(),
+    },
 }.iter());
 
 void proc_req(String cmd, char[][] args, bufio.Writer rsp_writer)

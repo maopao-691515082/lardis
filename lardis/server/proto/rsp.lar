@@ -32,3 +32,8 @@ public void send_rsp_str(bufio.Writer rsp_writer, char[] b)
     rsp_writer.write(b);
     rsp_writer.write(RSP_DATA_CRLF);
 }
+
+public void send_rsp_int(bufio.Writer rsp_writer, long n)
+{
+    rsp_writer.write_str(":%d\r\n".(n));
+}

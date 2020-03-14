@@ -1,0 +1,19 @@
+import io/bufio;
+
+class CmdExecutor_DEL
+{
+    String execute(char[][] args, bufio.Writer rsp_writer)
+    {
+        long deleted_count = 0;
+        db.do_write_cmd(args[0], []{
+            public Any do_write(Any old_v)
+            {
+                if (old_v !== nil)
+                {
+                    deleted_count = 1;
+                }
+            }
+        });
+        proto.send_rsp_int(rsp_writer, deleted_count);
+    }
+}

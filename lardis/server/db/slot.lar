@@ -19,7 +19,24 @@ class Slot
 
         var kvs = atomic.load(ref this.kvs);
 
-        //todo
+        kvs = kvs.write_value_by_key(k, []{
+            public Value do_write(Value old_v, ref bool ok)
+            {
+                Any old_vv;
+                if (ok)
+                {
+                    old_vv = old_v.v;
+                }
+                Any new_vv = vw.do_write(old_vv);
+                ok = new_vv !== nil;
+                Value new_v;
+                if (ok)
+                {
+                    new_v = new Value(new_vv);
+                }
+                return new_v;
+            }
+        });
 
         atomic.store(ref this.kvs, kvs);
     }
@@ -27,15 +44,12 @@ class Slot
     void do_read_cmd(data_types.Str k, ValueReader vr)
     {
         var kvs = atomic.load(ref this.kvs);
-
         var v = kvs.get(k, ref _);
-        if (v === nil)
+        Any vv;
+        if (v !== nil)
         {
-            vr.do_read(nil);
+            vv = v.v;
         }
-        else
-        {
-            vr.do_read(v.v);
-        }
+        vr.do_read(vv);
     }
 }

@@ -3,27 +3,87 @@ class AvlNode<K, V>
     K k;
     V v;
 
-    uint h;
-    uint sz;
+    int h;
+    int sz;
     AvlNode<K, V> l, r;
+
+    AvlNode(K k, V v)
+    {
+        this.k = k;
+        this.v = v;
+
+        this.h  = 1;
+        this.sz = 1;
+    }
+
+    int height()
+    {
+        if (this === nil)
+        {
+            return 0;
+        }
+        return this.h;
+    }
+
+    int size()
+    {
+        if (this === nil)
+        {
+            return 0;
+        }
+        return this.sz;
+    }
 
     V get(K k, ref bool ok)
     {
-        if (this !== nil)
+        if (this === nil)
         {
-            int cmp_result = cmp(k, this.k);
-            if (cmp_result < 0)
-            {
-                return this.l.get(k, ref ok);
-            }
-            if (cmp_result > 0)
-            {
-                return this.r.get(k, ref ok);
-            }
-            ok = true;
-            return this.v;
+            ok = false;
+            return zero_value<V>();
         }
-        ok = false;
+
+        int cmp_result = cmp(k, this.k);
+        if (cmp_result < 0)
+        {
+            return this.l.get(k, ref ok);
+        }
+        if (cmp_result > 0)
+        {
+            return this.r.get(k, ref ok);
+        }
+
+        ok = true;
+        return this.v;
+    }
+
+    public AvlNode<K, V> write_value_by_key(K k, ValueWriter<V> vw)
+    {
+        if (this === nil)
+        {
+            bool ok = false;
+            V new_v = vw.do_write(zero_value<V>(), ref ok);
+            if (ok)
+            {
+                //有新值，创建新的根节点
+                return new AvlNode<K, V>(k, v);
+            }
+            return nil;
+        }
+
+        int cmp_result = cmp(k, this.k);
+        if (cmp_result < 0)
+        {
+            var new_l = this.l.write_value_by_key(k, vw);
+            //todo
+        }
+        if (cmp_result > 0)
+        {
+            var new_r = this.r.write_value_by_key(k, vw);
+            //todo
+        }
+
+        //找到了
+        //todo
     }
 }
 
@@ -41,4 +101,10 @@ public class Avl<K, V>
         return this.root.get(k, ref ok);
     }
 
+    public Avl<K, V> write_value_by_key(K k, ValueWriter<V> vw)
+    {
+        return new Avl<K, V>{
+            root: this.root.write_value_by_key(k, vw),
+        };
+    }
 }
