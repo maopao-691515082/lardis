@@ -1,10 +1,18 @@
 import io/bufio;
+from . import db, proto;
 
 class CmdExecutor_SET
 {
     String execute(char[][] args, bufio.Writer rsp_writer)
     {
-        return "todo";
+        db.do_write_cmd(args[0], []{
+            public Any do_write(Any old_v)
+            {
+                //无视旧值（包括类型），直接覆盖
+                return args[1];
+            }
+        });
+        proto.send_rsp_ok(rsp_writer);
     }
 }
 
@@ -12,6 +20,22 @@ class CmdExecutor_GET
 {
     String execute(char[][] args, bufio.Writer rsp_writer)
     {
-        return "todo";
+        db.do_read_cmd(args[0], []{
+            public void do_read(Any old_v)
+            {
+                if (old_v === nil)
+                {
+                    proto.send_rsp_nil(rsp_writer);
+                    return;
+                }
+                char[] b;
+                if (!try_assert_type(old_v, ref b))
+                {
+                    proto.send_rsp_wrong_type(rsp_writer);
+                    return;
+                }
+                proto.send_rsp_str(rsp_writer, b);
+            }
+        });
     }
 }

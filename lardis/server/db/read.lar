@@ -1,0 +1,12 @@
+from .. import data_types;
+
+interface ValueReader
+{
+    public void do_read(Any old_v);
+}
+
+public void do_read_cmd(char[] kb, ValueReader vr)
+{
+    var k = new data_types.Str(kb);
+    slot_by_key(k).do_read_cmd(k, vr);
+}

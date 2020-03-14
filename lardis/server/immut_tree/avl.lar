@@ -6,6 +6,25 @@ class AvlNode<K, V>
     uint h;
     uint sz;
     AvlNode<K, V> l, r;
+
+    V get(K k, ref bool ok)
+    {
+        if (this !== nil)
+        {
+            int cmp_result = cmp(k, this.k);
+            if (cmp_result < 0)
+            {
+                return this.l.get(k, ref ok);
+            }
+            if (cmp_result > 0)
+            {
+                return this.r.get(k, ref ok);
+            }
+            ok = true;
+            return this.v;
+        }
+        ok = false;
+    }
 }
 
 public class Avl<K, V>
@@ -15,6 +34,11 @@ public class Avl<K, V>
     public Avl()
     {
         this.root = nil;
+    }
+
+    public V get(K k, ref bool ok)
+    {
+        return this.root.get(k, ref ok);
     }
 
 }

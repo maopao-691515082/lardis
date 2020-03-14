@@ -4,6 +4,6 @@ class CmdExecutor_COMMAND
 {
     String execute(char[][] args, bufio.Writer rsp_writer)
     {
-        return "todo";
+        return "未实现";
     }
 }

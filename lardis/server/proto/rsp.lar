@@ -1,0 +1,34 @@
+import io/bufio;
+
+final char[]
+    RSP_DATA_OK     = "+OK\r\n".to_char_array(),
+    RSP_DATA_NIL    = "$-1\r\n".to_char_array(),
+    RSP_DATA_CRLF   = "\r\n".to_char_array(),
+;
+
+public void send_rsp_ok(bufio.Writer rsp_writer)
+{
+    rsp_writer.write(RSP_DATA_OK);
+}
+
+public void send_rsp_err(bufio.Writer rsp_writer, String msg)
+{
+    rsp_writer.write_str("-ERR %s\r\n".(msg));
+}
+
+public void send_rsp_wrong_type(bufio.Writer rsp_writer)
+{
+    rsp_writer.write_str("-WRONGTYPE 数据类型错误\r\n");
+}
+
+public void send_rsp_nil(bufio.Writer rsp_writer)
+{
+    rsp_writer.write(RSP_DATA_NIL);
+}
+
+public void send_rsp_str(bufio.Writer rsp_writer, char[] b)
+{
+    rsp_writer.write_str("$%d\r\n".(b.size()));
+    rsp_writer.write(b);
+    rsp_writer.write(RSP_DATA_CRLF);
+}

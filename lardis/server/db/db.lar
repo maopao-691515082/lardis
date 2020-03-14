@@ -1,3 +1,6 @@
+import util;
+from .. import data_types;
+
 final long SLOT_COUNT = 1024L * 1024;
 
 Slot[] slots;
@@ -9,4 +12,9 @@ void __init()
     {
         slots[i] = new Slot();
     }
+}
+
+Slot slot_by_key(data_types.Str k)
+{
+    return slots[util.hash(k) % SLOT_COUNT];
 }

@@ -35,4 +35,15 @@ public class Str
         }
         return 0;
     }
+
+    public long hash()
+    {
+        long sz = this.b.size();
+        ulong h = cast<ulong>(sz);
+        for (long i = 0; i < sz; ++ i)
+        {
+            h = (h + cast<ulong>(this.b[i])) * 1000003;
+        }
+        return cast<long>(h);
+    }
 }

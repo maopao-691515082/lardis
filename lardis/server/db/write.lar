@@ -1,0 +1,12 @@
+from .. import data_types;
+
+interface ValueWriter
+{
+    public Any do_write(Any old_v);
+}
+
+public void do_write_cmd(char[] kb, ValueWriter vw)
+{
+    var k = new data_types.Str(kb);
+    slot_by_key(k).do_write_cmd(k, vw);
+}

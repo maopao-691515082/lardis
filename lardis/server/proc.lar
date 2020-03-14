@@ -20,7 +20,7 @@ void proc_req(String cmd, char[][] args, bufio.Writer rsp_writer)
 {
     String err_msg;
 
-    var cmd_info = CMD_INFO_MAP.get_or_default(cmd, nil);
+    var cmd_info = CMD_INFO_MAP.try_get(cmd, ref _);
     if (cmd_info === nil)
     {
         err_msg = "不支持命令‘%s’".(cmd);
@@ -41,6 +41,6 @@ void proc_req(String cmd, char[][] args, bufio.Writer rsp_writer)
 
     if (err_msg !== nil)
     {
-        send_err_rsp(rsp_writer, err_msg);
+        proto.send_rsp_err(rsp_writer, err_msg);
     }
 }
