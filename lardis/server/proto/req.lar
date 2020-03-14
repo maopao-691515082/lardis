@@ -43,7 +43,7 @@ long recv_int(bufio.Reader reader)
     return n;
 }
 
-String recv_part(bufio.Reader reader)
+char[] recv_part(bufio.Reader reader)
 {
     if (recv_char(reader) != '$')
     {
@@ -67,10 +67,10 @@ String recv_part(bufio.Reader reader)
         throw_proto_err(`每个字段值后需要‘\r\n’`);
     }
 
-    return new String(b);
+    return b;
 }
 
-public Req recv_req(bufio.Reader reader)
+public String recv_req(bufio.Reader reader, ref char[][] args)
 {
     char ch;
     if (!reader.read_char(ref ch))
@@ -89,31 +89,13 @@ public Req recv_req(bufio.Reader reader)
         throw_proto_err("协议的字段个数错误[%d]".(part_count));
     }
 
-    var parts = new String[part_count];
-    for (long i = 0; i < part_count; ++ i)
+    var cmd = new String(recv_part(reader)).to_upper();
+
+    args = new char[part_count - 1][];
+    for (long i = 0; i < part_count - 1; ++ i)
     {
-        parts[i] = recv_part(reader);
-    }
-    parts[0] = parts[0].to_upper();
-
-    //todo 检查是否为合法命令，以及命令的参数数量是否正确
-
-    return new Req{
-        parts: parts,
-    };
-}
-
-public class Req
-{
-    String[] parts; //第一个为cmd，会转为大写
-
-    public String cmd()
-    {
-        return this.arg(0);
+        args[i] = recv_part(reader);
     }
 
-    public String arg(long idx)
-    {
-        return this.parts[idx];
-    }
+    return cmd;
 }

@@ -1,0 +1,6 @@
+import io/bufio;
+
+void send_err_rsp(bufio.Writer rsp_writer, String msg)
+{
+    rsp_writer.write_str("-ERR %s\r\n".(msg));
+}

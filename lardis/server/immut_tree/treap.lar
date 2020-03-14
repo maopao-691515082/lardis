@@ -1,0 +1,20 @@
+class TreapNode<K, V>
+{
+    K k;
+    V v;
+
+    uint w;
+    uint sz;
+    TreapNode<K, V> l, r;
+}
+
+public class Treap<K, V>
+{
+    TreapNode<K, V> root;
+
+    public Treap()
+    {
+        this.root = nil;
+    }
+
+}

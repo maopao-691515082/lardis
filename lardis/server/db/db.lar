@@ -1,0 +1,12 @@
+final long SLOT_COUNT = 1024L * 1024;
+
+Slot[] slots;
+
+void __init()
+{
+    slots = new Slot[SLOT_COUNT];
+    for (long i = 0; i < SLOT_COUNT; ++ i)
+    {
+        slots[i] = new Slot();
+    }
+}

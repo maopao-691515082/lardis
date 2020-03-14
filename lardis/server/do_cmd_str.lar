@@ -1,0 +1,11 @@
+import io/bufio;
+
+void do_cmd_set(char[][] args, bufio.Writer rsp_writer)
+{
+    send_err_rsp(rsp_writer, "NotImpl");
+}
+
+void do_cmd_get(char[][] args, bufio.Writer rsp_writer)
+{
+    send_err_rsp(rsp_writer, "NotImpl");
+}

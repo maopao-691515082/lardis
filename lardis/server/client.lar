@@ -7,11 +7,13 @@ class Client
 {
     net.TcpConn     conn;
     bufio.Reader    conn_r;
+    bufio.Writer    conn_w;
 
     Client(net.TcpConn conn)
     {
         this.conn   = conn;
         this.conn_r = new bufio.Reader(conn, 0);
+        this.conn_w = new bufio.Writer(conn, 0);
         this.log("开始服务");
     }
 
@@ -24,24 +26,22 @@ class Client
     {
         for (;;)
         {
-            var req = proto.recv_req(this.conn_r);
-            if (req === nil)
+            char[][] args;
+            var cmd = proto.recv_req(this.conn_r, ref args);
+            if (cmd === nil)
             {
                 this.log("连接关闭");
                 return;
             }
-            if (req.cmd().eq("QUIT"))
+            if (cmd.eq("QUIT"))
             {
+                //QUIT命令直接处理，不需要检查参数的
                 this.log("退出");
                 return;
             }
 
-            proc_req(req, []{
-                void send_rsp_data(char[] rsp_data)
-                {
-                    this.conn.write(rsp_data);
-                }
-            });
+            proc_req(cmd, args, this.conn_w);
+            this.conn_w.flush();
         }
     }
 

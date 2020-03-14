@@ -1,0 +1,14 @@
+import sync;
+from .. import immut_tree, data_types;
+
+class Slot
+{
+    Slot()
+    {
+        this.w_lock = new sync.FastMutex();
+        this.kvs    = new immut_tree.Treap<data_types.Str, Value>();
+    }
+
+    sync.FastMutex                          w_lock;
+    immut_tree.Treap<data_types.Str, Value> kvs;
+}

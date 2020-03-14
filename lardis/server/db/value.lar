@@ -1,0 +1,7 @@
+class Value
+{
+    //根据v的类型来判断存放的什么数据
+    Any v;
+
+    //用Value包装而不是直接用Any是因为这里将来可能会加入lru之类的信息，并且Value的引用比Any要少8个字节，减少Node的消耗
+}

@@ -1,12 +1,19 @@
+import io/bufio;
 from . import proto;
 
-interface RspDataSender
+void proc_req(String cmd, char[][] args, bufio.Writer rsp_writer)
 {
-    void send_rsp_data(char[] rsp_data);
-}
+    if (cmd.eq("SET"))
+    {
+        do_cmd_set(args, rsp_writer);
+        return;
+    }
 
-void proc_req(proto.Req req, RspDataSender rsp_data_sender)
-{
-    //todo
-    rsp_data_sender.send_rsp_data("+OK\r\n".to_char_array());
+    if (cmd.eq("GET"))
+    {
+        do_cmd_get(args, rsp_writer);
+        return;
+    }
+
+    send_err_rsp(rsp_writer, "不支持命令‘%s’".(cmd));
 }

@@ -1,0 +1,38 @@
+//对char[]做一个简单封装，主要用处是标识其不可变并增加cmp等方法，用于db、hash、set、zset的key
+
+public class Str
+{
+    char[] b;
+
+    public Str(char[] b)
+    {
+        this.b = b;
+    }
+
+    public int cmp(Str other)
+    {
+        long this_sz = this.b.size(), other_sz = other.b.size();
+        long cmp_sz = min(this_sz, other_sz);
+        for (long i = 0; i < cmp_sz; ++ i)
+        {
+            char tc = this.b[i], oc = other.b[i];
+            if (tc < oc)
+            {
+                return -1;
+            }
+            if (tc > oc)
+            {
+                return 1;
+            }
+        }
+        if (this_sz < other_sz)
+        {
+            return -1;
+        }
+        if (this_sz > other_sz)
+        {
+            return 1;
+        }
+        return 0;
+    }
+}
