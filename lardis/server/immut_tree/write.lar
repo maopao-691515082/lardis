@@ -1,5 +1,0 @@
-interface ValueWriter<V>
-{
-    //ok输入的值是标识旧值是否存在，输出的值是标识新值是否存在
-    public V do_write(V old_v, ref bool ok);
-}

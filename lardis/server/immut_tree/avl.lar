@@ -1,3 +1,5 @@
+from .. import util;
+
 class AvlNode<K, V>
 {
     K k;
@@ -34,10 +36,16 @@ class AvlNode<K, V>
         return this.sz;
     }
 
-    V get(K k, ref bool ok)
+    long size_long()
+    {
+        return cast<long>(this.size());
+    }
+
+    V get_by_key(K k, ref bool ok, ref long idx)
     {
         if (this === nil)
         {
+            //没找到，当前nil节点的位置即需要插入的位置
             ok = false;
             return zero_value<V>();
         }
@@ -45,45 +53,243 @@ class AvlNode<K, V>
         int cmp_result = cmp(k, this.k);
         if (cmp_result < 0)
         {
-            return this.l.get(k, ref ok);
+            //左子树中查找，位置不需要改变
+            return this.l.get_by_key(k, ref ok, ref idx);
         }
         if (cmp_result > 0)
         {
-            return this.r.get(k, ref ok);
-        }
-
-        ok = true;
-        return this.v;
-    }
-
-    public AvlNode<K, V> write_value_by_key(K k, ValueWriter<V> vw)
-    {
-        if (this === nil)
-        {
-            bool ok = false;
-            V new_v = vw.do_write(zero_value<V>(), ref ok);
-            if (ok)
-            {
-                //有新值，创建新的根节点
-                return new AvlNode<K, V>(k, v);
-            }
-            return nil;
-        }
-
-        int cmp_result = cmp(k, this.k);
-        if (cmp_result < 0)
-        {
-            var new_l = this.l.write_value_by_key(k, vw);
-            //todo
-        }
-        if (cmp_result > 0)
-        {
-            var new_r = this.r.write_value_by_key(k, vw);
-            //todo
+            //右子树中查找，位置应加上左子树大小+1
+            idx += this.l.size_long() + 1;
+            return this.r.get_by_key(k, ref ok, ref idx);
         }
 
         //找到了
-        //todo
+        ok = true;
+        idx += this.l.size_long();
+        return this.v;
+    }
+
+    //按索引位置插入
+    AvlNode<K, V> add_kv_by_idx(long idx, K k, V v)
+    {
+        if (this === nil)
+        {
+            util.assert(idx == 0);
+            return new AvlNode<K, V>(k, v);
+        }
+
+        var this_copy = this.copy();
+        long left_sz = this_copy.l.size_long();
+        if (idx <= left_sz)
+        {
+            this_copy.l = this_copy.l.add_kv_by_idx(idx, k, v);
+        }
+        else
+        {
+            this_copy.r = this_copy.r.add_kv_by_idx(idx - left_sz - 1, k, v);
+        }
+        return this_copy.rebalance();
+    }
+
+    //按索引修改节点的值
+    AvlNode<K, V> set_value_by_idx(long idx, V v)
+    {
+        var this_copy = this.copy();
+        long left_sz = this_copy.l.size_long();
+        if (idx < left_sz)
+        {
+            this_copy.l = this_copy.l.set_value_by_idx(idx, v);
+        }
+        else if (idx > left_sz)
+        {
+            this_copy.r = this_copy.r.set_value_by_idx(idx - left_sz - 1, v);
+        }
+        else
+        {
+            this_copy.v = v;
+        }
+        return this_copy;
+    }
+
+    //按索引删除
+    AvlNode<K, V> del_by_idx(long idx)
+    {
+        long left_sz = this.l.size_long();
+        
+        //一个小优化：如果要删除的节点有任意一个子树为空则不需要拷贝自己
+        if (idx == left_sz)
+        {
+            //删除当前节点
+            if (this.l === nil)
+            {
+                return this.r;
+            }
+            if (this.r === nil)
+            {
+                return this.l;
+            }
+            //两个子树都不为空则到下面走复杂流程
+        }
+
+        var this_copy = this.copy();
+        if (idx < left_sz)
+        {
+            this_copy.l = this_copy.l.del_by_idx(idx);
+        }
+        else if (idx > left_sz)
+        {
+            this_copy.r = this_copy.r.del_by_idx(idx - left_sz - 1);
+        }
+        else
+        {
+            //删除当前节点，上面已经对特殊情况作了优化处理，这里只需考虑两个子树都不为空的情形，删除前趋节点并将前趋kv写到本节点
+            this_copy.l = this_copy.l.del_last(ref this_copy.k, ref this_copy.v);
+        }
+
+        return this_copy.rebalance();
+    }
+
+    AvlNode<K, V> del_last(ref K k, ref V v)
+    {
+        if (this.r === nil)
+        {
+            //已经是最后一个了，通过返回左子树来删除
+            k = this.k;
+            v = this.v;
+            return this.l;
+        }
+
+        //对右子树进行递归
+        var this_copy = this.copy();
+        this_copy.r = this_copy.r.del_last(ref k, ref v);
+        return this_copy.rebalance();
+    }
+
+    AvlNode<K, V> rebalance()
+    {
+        /*
+        对当前子树做平衡操作
+        注：
+            - 子树根的h和sz是失效的，需要重新计算
+            - 只保证子树根是新的copy节点，左右子树均不保证（意即旋转时需要copy）
+        */
+        var l_h = this.l.height(), r_h = this.r.height();
+        var h_diff = l_h - r_h;
+
+        if (h_diff >= -1 && h_diff <= 1)
+        {
+            //已经平衡了，直接调整根的h和sz并返回
+            this.fix_hsz();
+            return this;
+        }
+
+        AvlNode<K, V> new_root;
+
+        if (h_diff == -2)
+        {
+            var r_copy = this.r.copy(), rr = r_copy.r;
+            var rr_h = rr.height();
+            if (rr_h == l_h)
+            {
+                //双旋转情形
+                var rl_copy = r_copy.l.copy(), rll = rl_copy.l, rlr = rl_copy.r;
+
+                util.assert(rl_copy.height() == l_h + 1);
+
+                this.r = rll;
+                this.fix_hsz();
+
+                r_copy.l = rlr;
+                r_copy.fix_hsz();
+
+                rl_copy.l = this;
+                rl_copy.r = r_copy;
+                rl_copy.fix_hsz();
+
+                new_root = rl_copy;
+            }
+            else
+            {
+                //单旋转情形
+                util.assert(rr_h == l_h + 1);
+                var rl = r_copy.l;
+
+                var rl_h = rl.height();
+                util.assert(rl_h == l_h || rl_h == l_h + 1);
+
+                this.r = rl;
+                this.fix_hsz();
+
+                r_copy.l = this;
+                r_copy.fix_hsz();
+
+                new_root = r_copy;
+            }
+        }
+        else
+        {
+            util.assert(h_diff == 2);
+
+            //和h_diff==-2对称的情形
+            var l_copy = this.l.copy(), ll = l_copy.l;
+            var ll_h = ll.height();
+            if (ll_h == r_h)
+            {
+                //双旋转情形
+                var lr_copy = l_copy.r.copy(), lrr = lr_copy.r, lrl = lr_copy.l;
+
+                util.assert(lr_copy.height() == r_h + 1);
+
+                this.l = lrr;
+                this.fix_hsz();
+
+                l_copy.r = lrl;
+                l_copy.fix_hsz();
+
+                lr_copy.r = this;
+                lr_copy.l = l_copy;
+                lr_copy.fix_hsz();
+
+                new_root = lr_copy;
+            }
+            else
+            {
+                //单旋转情形
+                util.assert(ll_h == r_h + 1);
+                var lr = l_copy.r;
+
+                var lr_h = lr.height();
+                util.assert(lr_h == r_h || lr_h == r_h + 1);
+
+                this.l = lr;
+                this.fix_hsz();
+
+                l_copy.r = this;
+                l_copy.fix_hsz();
+
+                new_root = l_copy;
+            }
+        }
+
+        return new_root;
+    }
+
+    void fix_hsz()
+    {
+        this.h  = max(this.l.height(), this.r.height()) + 1;
+        this.sz = this.l.size() + this.r.size() + 1;
+    }
+
+    AvlNode<K, V> copy()
+    {
+        return new AvlNode<K, V>{
+            k:  this.k,
+            v:  this.v,
+            h:  this.h,
+            sz: this.sz,
+            l:  this.l,
+            r:  this.r,
+        };
     }
 }
 
@@ -96,15 +302,44 @@ public class Avl<K, V>
         this.root = nil;
     }
 
-    public V get(K k, ref bool ok)
+    public long size()
     {
-        return this.root.get(k, ref ok);
+        return this.root.size_long();
     }
 
-    public Avl<K, V> write_value_by_key(K k, ValueWriter<V> vw)
+    /*
+    根据key查找value
+    ok返回是否查找成功
+        - 若成功，返回value，idx指示value所在的索引位置
+        - 若失败，返回V的零值，idx指示value需要插入的索引位置
+    */
+    public V get_by_key(K k, ref bool ok, ref long idx)
     {
+        idx = 0;    //idx在AvlNode的对应方法中有输入子树索引位置的含义，即当前子树前面有多少节点，根节点的整体索引位置自然为0
+        return this.root.get_by_key(k, ref ok, ref idx);
+    }
+
+    public Avl<K, V> add_kv_by_idx(long idx, K k, V v)
+    {
+        util.assert(idx >= 0 && idx <= this.size());    //可以插入到末尾，所以可以等于size
         return new Avl<K, V>{
-            root: this.root.write_value_by_key(k, vw),
+            root: this.root.add_kv_by_idx(idx, k, v),
+        };
+    }
+
+    public Avl<K, V> set_value_by_idx(long idx, V v)
+    {
+        util.assert(idx >= 0 && idx < this.size());
+        return new Avl<K, V>{
+            root: this.root.set_value_by_idx(idx, v),
+        };
+    }
+
+    public Avl<K, V> del_by_idx(long idx)
+    {
+        util.assert(idx >= 0 && idx < this.size());
+        return new Avl<K, V>{
+            root: this.root.del_by_idx(idx),
         };
     }
 }

@@ -1,10 +1,12 @@
 import net, fiber;
-from . import util, db;
+from . import util;
 
 final String SVR_ADDR = ":6379";
 
 public void start()
 {
+    fiber.set_proc_count(4);
+
     var listener = new net.TcpListener(SVR_ADDR);
     defer listener.close();
 

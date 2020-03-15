@@ -1,5 +1,5 @@
-import util;
-from .. import data_types;
+import util, sync/atomic, fiber, time;
+from .. import data_types, util: lardis_util;
 
 final long SLOT_COUNT = 1024L * 1024;
 
@@ -12,9 +12,34 @@ void __init()
     {
         slots[i] = new Slot();
     }
+
+    fiber.start_new([-]{
+        for (;;)
+        {
+            lardis_util.log("key count: %d".(key_count()));
+            time.sleep(1);
+        }
+    });
 }
 
 Slot slot_by_key(data_types.Str k)
 {
     return slots[util.hash(k) % SLOT_COUNT];
+}
+
+long _key_count = 0;
+
+void incr_key_count()
+{
+    atomic.add(ref _key_count, 1L);
+}
+
+void decr_key_count()
+{
+    atomic.add(ref _key_count, -1L);
+}
+
+public long key_count()
+{
+    return atomic.load(ref _key_count);
 }

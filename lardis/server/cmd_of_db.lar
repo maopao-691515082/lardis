@@ -1,4 +1,5 @@
 import io/bufio;
+from . import db, proto;
 
 class CmdExecutor_DEL
 {

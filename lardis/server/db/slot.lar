@@ -1,5 +1,5 @@
 import sync, sync/atomic;
-from .. import immut_tree, data_types;
+from .. import immut_tree, data_types, util;
 
 class Slot
 {
@@ -18,25 +18,43 @@ class Slot
         defer this.w_lock.unlock();
 
         var kvs = atomic.load(ref this.kvs);
-
-        kvs = kvs.write_value_by_key(k, []{
-            public Value do_write(Value old_v, ref bool ok)
+        bool ok;
+        long idx;
+        var old_v = kvs.get_by_key(k, ref ok, ref idx);
+        Any old_vv;
+        if (ok)
+        {
+            old_vv = old_v.v;
+        }
+        Any new_vv = vw.do_write(old_vv);
+        if (new_vv === old_vv)
+        {
+            //没变，什么也不做
+            return;
+        }
+        if (new_vv === nil)
+        {
+            //删除操作
+            util.assert(ok);
+            kvs = kvs.del_by_idx(idx);
+            decr_key_count();
+        }
+        else
+        {
+            //将新值写回kvs
+            var new_v = new Value(new_vv);
+            if (ok)
             {
-                Any old_vv;
-                if (ok)
-                {
-                    old_vv = old_v.v;
-                }
-                Any new_vv = vw.do_write(old_vv);
-                ok = new_vv !== nil;
-                Value new_v;
-                if (ok)
-                {
-                    new_v = new Value(new_vv);
-                }
-                return new_v;
+                //修改操作
+                kvs = kvs.set_value_by_idx(idx, new_v);
             }
-        });
+            else
+            {
+                //插入操作
+                kvs = kvs.add_kv_by_idx(idx, k, new_v);
+                incr_key_count();
+            }
+        }
 
         atomic.store(ref this.kvs, kvs);
     }
@@ -44,7 +62,7 @@ class Slot
     void do_read_cmd(data_types.Str k, ValueReader vr)
     {
         var kvs = atomic.load(ref this.kvs);
-        var v = kvs.get(k, ref _);
+        var v = kvs.get_by_key(k, ref _, ref _);
         Any vv;
         if (v !== nil)
         {
