@@ -1,0 +1,90 @@
+import io/bufio;
+from . import db, proto, data_types;
+
+class CmdExecutor_LPUSH
+{
+    String execute(char[][] args, bufio.Writer rsp_writer)
+    {
+        bool ok = true;
+        db.do_write_cmd(args[0], []{
+            public Any do_write(Any old_v)
+            {
+                data_types.List l;
+                if (old_v === nil)
+                {
+                    //不存在，新建
+                    l = new data_types.List();
+                }
+                else if (!try_assert_type(old_v, ref l))
+                {
+                    //是其他类型
+                    proto.send_rsp_wrong_type(rsp_writer);
+                    ok = false;
+                    return old_v;
+                }
+                return l.lpush(args[1 :]);
+            }
+        });
+        if (ok)
+        {
+            proto.send_rsp_int(rsp_writer, args.size() - 1);
+        }
+    }
+}
+
+class CmdExecutor_LRANGE
+{
+    String execute(char[][] args, bufio.Writer rsp_writer)
+    {
+        long start_idx, end_idx;
+        var c = call_and_catch<ValueError>([-]{
+            start_idx   = new String(args[1]).parse_long(10);
+            end_idx     = new String(args[2]).parse_long(10);
+        });
+        if (c !== nil)
+        {
+            proto.send_rsp_parse_number_err(rsp_writer);
+            return nil;
+        }
+
+        db.do_read_cmd(args[0], []{
+            public void do_read(Any old_v)
+            {
+                if (old_v === nil)
+                {
+                    proto.send_rsp_empty_list(rsp_writer);
+                    return;
+                }
+                data_types.List l;
+                if (!try_assert_type(old_v, ref l))
+                {
+                    proto.send_rsp_wrong_type(rsp_writer);
+                    return;
+                }
+                long l_len = l.len();
+                if (start_idx < 0)
+                {
+                    start_idx += l_len;
+                }
+                if (start_idx < 0)
+                {
+                    start_idx = 0;
+                }
+                if (end_idx < 0)
+                {
+                    end_idx += l_len;
+                }
+                if (end_idx >= l_len)
+                {
+                    end_idx = l_len - 1;
+                }
+                if (start_idx > end_idx)
+                {
+                    proto.send_rsp_empty_list(rsp_writer);
+                    return;
+                }
+                l.lrange(rsp_writer, start_idx, end_idx + 1 - start_idx);
+            }
+        });
+    }
+}

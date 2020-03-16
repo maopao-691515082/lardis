@@ -1,9 +1,10 @@
 import io/bufio;
 
 final char[]
-    RSP_DATA_OK     = "+OK\r\n".to_char_array(),
-    RSP_DATA_NIL    = "$-1\r\n".to_char_array(),
-    RSP_DATA_CRLF   = "\r\n".to_char_array(),
+    RSP_DATA_OK         = "+OK\r\n".to_char_array(),
+    RSP_DATA_NIL        = "$-1\r\n".to_char_array(),
+    RSP_DATA_CRLF       = "\r\n".to_char_array(),
+    RSP_DATA_EMPTY_LIST = "*0\r\n".to_char_array(),
 ;
 
 public void send_rsp_ok(bufio.Writer rsp_writer)
@@ -21,6 +22,11 @@ public void send_rsp_wrong_type(bufio.Writer rsp_writer)
     rsp_writer.write_str("-WRONGTYPE 数据类型错误\r\n");
 }
 
+public void send_rsp_parse_number_err(bufio.Writer rsp_writer)
+{
+    send_rsp_err(rsp_writer, "解析数字失败");
+}
+
 public void send_rsp_nil(bufio.Writer rsp_writer)
 {
     rsp_writer.write(RSP_DATA_NIL);
@@ -36,4 +42,14 @@ public void send_rsp_str(bufio.Writer rsp_writer, char[] b)
 public void send_rsp_int(bufio.Writer rsp_writer, long n)
 {
     rsp_writer.write_str(":%d\r\n".(n));
+}
+
+public void send_rsp_empty_list(bufio.Writer rsp_writer)
+{
+    rsp_writer.write(RSP_DATA_OK);
+}
+
+public void send_rsp_item_count(bufio.Writer rsp_writer, long count)
+{
+    rsp_writer.write_str("*%d\r\n".(count));
 }

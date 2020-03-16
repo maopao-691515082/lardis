@@ -1,24 +1,5 @@
-import io/bufio, util;
+import io/bufio;
 from . import proto;
-
-final util.HashMap<String, CmdInfo> CMD_INFO_MAP = new util.HashMap<String, CmdInfo>(new Pair<String, CmdInfo>[]{
-    "COMMAND":  new CmdInfo{
-        arg_count:  0,
-        executor:   new CmdExecutor_COMMAND(),
-    },
-    "SET":      new CmdInfo{
-        arg_count:  2,
-        executor:   new CmdExecutor_SET(),
-    },
-    "GET":      new CmdInfo{
-        arg_count:  1,
-        executor:   new CmdExecutor_GET(),
-    },
-    "DEL":      new CmdInfo{
-        arg_count:  1,
-        executor:   new CmdExecutor_DEL(),
-    },
-}.iter());
 
 void proc_req(String cmd, char[][] args, bufio.Writer rsp_writer)
 {

@@ -3,10 +3,12 @@ from .. import util;
 class AvlNode<K, V>
 {
     K k;
+
+    short h;
+    int sz;
+
     V v;
 
-    int h;
-    int sz;
     AvlNode<K, V> l, r;
 
     AvlNode(K k, V v)
@@ -18,7 +20,7 @@ class AvlNode<K, V>
         this.sz = 1;
     }
 
-    int height()
+    short height()
     {
         if (this === nil)
         {
@@ -66,6 +68,20 @@ class AvlNode<K, V>
         //找到了
         ok = true;
         idx += this.l.size_long();
+        return this.v;
+    }
+
+    V get_by_idx(long idx)
+    {
+        long left_sz = this.l.size_long();
+        if (idx < left_sz)
+        {
+            return this.l.get_by_idx(idx);
+        }
+        if (idx > left_sz)
+        {
+            return this.r.get_by_idx(idx - left_sz - 1);
+        }
         return this.v;
     }
 
@@ -174,7 +190,7 @@ class AvlNode<K, V>
             - 只保证子树根是新的copy节点，左右子树均不保证（意即旋转时需要copy）
         */
         var l_h = this.l.height(), r_h = this.r.height();
-        var h_diff = l_h - r_h;
+        var h_diff = cast<int>(l_h - r_h);
 
         if (h_diff >= -1 && h_diff <= 1)
         {
@@ -317,6 +333,12 @@ public class Avl<K, V>
     {
         idx = 0;    //idx在AvlNode的对应方法中有输入子树索引位置的含义，即当前子树前面有多少节点，根节点的整体索引位置自然为0
         return this.root.get_by_key(k, ref ok, ref idx);
+    }
+
+    public V get_by_idx(long idx)
+    {
+        util.assert(idx >= 0 && idx < this.size());
+        return this.root.get_by_idx(idx);
     }
 
     public Avl<K, V> add_kv_by_idx(long idx, K k, V v)

@@ -1,4 +1,4 @@
-import io/bufio;
+import io/bufio, util;
 
 interface CmdExecutor
 {
@@ -10,3 +10,30 @@ class CmdInfo
     int         arg_count;
     CmdExecutor executor;
 }
+
+final util.HashMap<String, CmdInfo> CMD_INFO_MAP = new util.HashMap<String, CmdInfo>(new Pair<String, CmdInfo>[]{
+    "COMMAND":  new CmdInfo{
+        arg_count:  0,
+        executor:   new CmdExecutor_COMMAND(),
+    },
+    "SET":      new CmdInfo{
+        arg_count:  2,
+        executor:   new CmdExecutor_SET(),
+    },
+    "GET":      new CmdInfo{
+        arg_count:  1,
+        executor:   new CmdExecutor_GET(),
+    },
+    "DEL":      new CmdInfo{
+        arg_count:  1,
+        executor:   new CmdExecutor_DEL(),
+    },
+    "LPUSH":    new CmdInfo{
+        arg_count:  -2,
+        executor:   new CmdExecutor_LPUSH(),
+    },
+    "LRANGE":   new CmdInfo{
+        arg_count:  3,
+        executor:   new CmdExecutor_LRANGE(),
+    },
+}.iter());

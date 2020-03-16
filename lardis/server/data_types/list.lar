@@ -1,0 +1,39 @@
+import io/bufio;
+from .. import immut_tree, proto, util;
+
+public class List
+{
+    immut_tree.Avl<bool, char[]> l;
+
+    public List()
+    {
+        this.l = new immut_tree.Avl<bool, char[]>();
+    }
+
+    public long len()
+    {
+        return this.l.size();
+    }
+
+    public List lpush(char[][] vs)
+    {
+        var l = this.l,
+            sz = vs.size();
+        for (long i = 0; i < sz; ++ i)
+        {
+            l = l.add_kv_by_idx(0, true, vs[i]);
+        }
+        return new List{
+            l: l,
+        };
+    }
+
+    public void lrange(bufio.Writer rsp_writer, long start_idx, long count)
+    {
+        proto.send_rsp_item_count(rsp_writer, count);
+        for (long i = 0; i < count; ++ i)
+        {
+            proto.send_rsp_str(rsp_writer, this.l.get_by_idx(start_idx + i));
+        }
+    }
+}
