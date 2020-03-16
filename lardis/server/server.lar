@@ -1,16 +1,18 @@
-import net, fiber;
-from . import util;
+import net, fiber, os, util;
+from . import util: lardis_util;
 
 final String SVR_ADDR = ":6379";
 
 public void start()
 {
-    fiber.set_proc_count(4);
+    util.HashMap<String, String> opt_map;
+    os.args.parse("", new String[]{"cpu_count="}, ref opt_map);
+    fiber.set_proc_count(cast<int>(opt_map.get("--cpu_count").parse_long(10)));
 
     var listener = new net.TcpListener(SVR_ADDR);
     defer listener.close();
 
-    util.log("启动");
+    lardis_util.log("启动");
     for (;;)
     {
         var c = call_and_catch<Throwable>([-]{
@@ -21,7 +23,7 @@ public void start()
         });
         if (c !== nil)
         {
-            util.log("accept失败[%s][%s]".(c.throwed().str(), c.traceback()));
+            lardis_util.log("accept失败[%s][%s]".(c.throwed().str(), c.traceback()));
         }
     }
 }
