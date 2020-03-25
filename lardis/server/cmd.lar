@@ -36,4 +36,8 @@ final util.HashMap<String, CmdInfo> CMD_INFO_MAP = new util.HashMap<String, CmdI
         arg_count:  3,
         executor:   new CmdExecutor_LRANGE(),
     },
+    "LSET":     new CmdInfo{
+        arg_count:  3,
+        executor:   new CmdExecutor_LSET(),
+    },
 }.iter());

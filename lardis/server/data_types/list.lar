@@ -36,4 +36,11 @@ public class List
             proto.send_rsp_str(rsp_writer, this.l.get_by_idx(start_idx + i));
         }
     }
+
+    public List lset(long idx, char[] v)
+    {
+        return new List{
+            l: this.l.set_value_by_idx(idx, v),
+        };
+    }
 }
