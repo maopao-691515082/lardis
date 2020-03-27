@@ -46,7 +46,7 @@ public void send_rsp_int(bufio.Writer rsp_writer, long n)
 
 public void send_rsp_empty_list(bufio.Writer rsp_writer)
 {
-    rsp_writer.write(RSP_DATA_OK);
+    rsp_writer.write(RSP_DATA_EMPTY_LIST);
 }
 
 public void send_rsp_item_count(bufio.Writer rsp_writer, long count)
