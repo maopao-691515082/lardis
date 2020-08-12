@@ -1,4 +1,4 @@
-import os, util, math/rand, debug, fiber, net, sync, time;
+import os, util, math/rand, debug, fiber, net, sync/atomic, time;
 
 String svr_addr = "localhost:6379";
 long client_count = 50;
@@ -9,9 +9,7 @@ long data_len = 3;
 char[] rand_value = new char[1024 * 1024];
 long test_count_per_client;
 
-sync.FastMutex counter_lock = new sync.FastMutex();
 long counter;
-double counter_last_update_time;
 
 void init()
 {
@@ -64,22 +62,17 @@ void init()
     debug.assert(test_count_per_client > 0, "bug");
 
     counter = 0;
-    counter_last_update_time = time.time();
-}
-
-void add_test_count()
-{
-    counter_lock.lock();
-    defer counter_lock.unlock();
-
-    ++ counter;
-    if (counter >= 100000)
-    {
-        double now = time.time();
-        println("%.2f".(cast<double>(counter) / (now - counter_last_update_time)));
-        counter = 0;
-        counter_last_update_time = now;
-    }
+    fiber.start_new([-]{
+        double last_time = time.time();
+        long last_counter = atomic.load(ref counter);
+        for (;;)
+        {
+            time.sleep(1);
+            double now = time.time();
+            long now_counter = atomic.load(ref counter);
+            println("%.2f".(cast<double>(now_counter - last_counter) / (now - last_time)));
+        }
+    });
 }
 
 void do_client_bench()
@@ -104,7 +97,7 @@ void do_client_bench()
         {
             throw("rsp error [%r]".(rsp));
         }
-        add_test_count();
+        atomic.add(ref counter, 1L);
     }
 }
 
@@ -117,7 +110,7 @@ public void main()
     {
         var chan = new Chan<int>(0);
         chans[i] = chan;
-        fiber.start_new([-] {
+        fiber.start_new([-]{
             defer chan.close();
             do_client_bench();
         });
