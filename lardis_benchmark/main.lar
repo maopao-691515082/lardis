@@ -1,0 +1,130 @@
+import os, util, math/rand, debug, fiber, net, sync, time;
+
+String svr_addr = "localhost:6379";
+long client_count = 50;
+long key_rand_range = 1;
+long test_count = 100000;
+long data_len = 3;
+
+char[] rand_value = new char[1024 * 1024];
+long test_count_per_client;
+
+sync.FastMutex counter_lock = new sync.FastMutex();
+long counter;
+double counter_last_update_time;
+
+void init()
+{
+    util.HashMap<String, String> opt_map;
+    os.args.parse("c:r:n:d:", new String[]{"svr_addr=", "cpu_count="}, ref opt_map);
+    foreach (var p: opt_map.iter())
+    {
+        var k = p.first(), v = p.second();
+        if (k.eq("--svr_addr"))
+        {
+            svr_addr = v;
+            continue;
+        }
+        if (k.eq("-c"))
+        {
+            client_count = v.parse_long(10);
+            debug.assert(client_count > 0, "bug");
+            continue;
+        }
+        if (k.eq("-r"))
+        {
+            key_rand_range = v.parse_long(10);
+            debug.assert(key_rand_range > 0, "bug");
+            continue;
+        }
+        if (k.eq("-n"))
+        {
+            test_count = v.parse_long(10);
+            debug.assert(test_count > 0, "bug");
+            continue;
+        }
+        if (k.eq("-d"))
+        {
+            data_len = v.parse_long(10);
+            debug.assert(data_len > 0 && data_len <= 512, "bug");
+            continue;
+        }
+
+        if (k.eq("--cpu_count"))
+        {
+            fiber.set_proc_count(cast<int>(v.parse_long(10)));
+        }
+    }
+
+    for (long i = 0; i < rand_value.size(); ++ i)
+    {
+        rand_value[i] = cast<char>(32 + rand.rand_n(127L - 32));
+    }
+    test_count_per_client = test_count / client_count;
+    debug.assert(test_count_per_client > 0, "bug");
+
+    counter = 0;
+    counter_last_update_time = time.time();
+}
+
+void add_test_count()
+{
+    counter_lock.lock();
+    defer counter_lock.unlock();
+
+    ++ counter;
+    if (counter >= 100000)
+    {
+        double now = time.time();
+        println("%.2f".(cast<double>(counter) / (now - counter_last_update_time)));
+        counter = 0;
+        counter_last_update_time = now;
+    }
+}
+
+void do_client_bench()
+{
+    var conn = new net.TcpConn(svr_addr);
+    defer conn.close();
+
+    var buf = new char[1024];
+    for (long i = 0; i < test_count_per_client; ++ i)
+    {
+        var k = "key:%012d".(rand.rand_n(key_rand_range));
+        var v_start_idx = rand.rand_n(rand_value.size() - data_len + 1);
+        var v = rand_value[v_start_idx : v_start_idx + data_len];
+        long copyed_len = buf.shallow_copy_from(
+            "*3\r\n$3\r\nSET\r\n$%d\r\n%s\r\n$%d\r\n".(k.len(), k, v.size()).to_char_array());
+        copyed_len += buf[copyed_len :].shallow_copy_from(v);
+        copyed_len += buf[copyed_len :].shallow_copy_from("\r\n".to_char_array());
+        conn.write(buf[: copyed_len]);
+        long recved_len = conn.read(buf);
+        var rsp = new String(buf[: recved_len]);
+        if (!rsp.eq("+OK\r\n"))
+        {
+            throw("rsp error [%r]".(rsp));
+        }
+        add_test_count();
+    }
+}
+
+public void main()
+{
+    init();
+
+    var chans = new Chan<int>[client_count];
+    for (long i = 0; i < client_count; ++ i)
+    {
+        var chan = new Chan<int>(0);
+        chans[i] = chan;
+        fiber.start_new([-] {
+            defer chan.close();
+            do_client_bench();
+        });
+    }
+
+    for (long i = 0; i < client_count; ++ i)
+    {
+        chans[i].recv(ref _);
+    }
+}
